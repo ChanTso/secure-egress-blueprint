@@ -31,8 +31,9 @@ def template_context() -> dict[str, object]:
 
 
 def render(name: str, **overrides: object) -> str:
-    environment = jinja2.Environment(  # noqa: S701
+    environment = jinja2.Environment(
         loader=jinja2.FileSystemLoader(ROLE_ROOT / "templates"),
+        autoescape=jinja2.select_autoescape(),
         undefined=jinja2.StrictUndefined,
         keep_trailing_newline=True,
     )
