@@ -1,0 +1,26 @@
+---
+- name: Wait for the loopback Xray tunnel listener
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ secure_egress_xray_tunnel_port }}"
+    connect_timeout: 2
+    timeout: 20
+
+- name: Wait for the loopback Xray stats listener
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ secure_egress_xray_stats_port }}"
+    connect_timeout: 2
+    timeout: 20
+
+- name: Check the loopback-only Caddy health endpoint
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ secure_egress_caddy_health_port }}/healthz"
+    method: GET
+    status_code: 200
+    return_content: true
+  register: secure_egress_health
+  changed_when: false
+  failed_when: >-
+    secure_egress_health.status != 200
+    or secure_egress_health.content != "ok"

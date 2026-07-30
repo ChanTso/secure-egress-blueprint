@@ -1,0 +1,9 @@
+* text=auto eol=lf
+*.sh text eol=lf
+*.py text eol=lf
+*.tf text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.j2 text eol=lf
+LICENSE text eol=lf
+

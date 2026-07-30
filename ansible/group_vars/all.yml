@@ -1,0 +1,12 @@
+---
+# This checked-in configuration cannot pass the deployment interlock.
+secure_egress_deployment_enabled: false
+secure_egress_deployment_acknowledgement: ""
+
+secure_egress_domain: egress.example.com
+secure_egress_tunnel_path: /synthetic-tunnel
+secure_egress_traffic_guard_limit_bytes: 1073741824
+secure_egress_traffic_guard_warning_ratio: 0.8
+secure_egress_traffic_guard_auto_stop_enabled: false
+secure_egress_traffic_guard_enforce: false
+secure_egress_traffic_guard_stop_acknowledgement: ""

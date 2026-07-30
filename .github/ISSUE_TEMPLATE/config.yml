@@ -1,0 +1,6 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a vulnerability privately
+    url: https://github.com/ChanTso/secure-egress-blueprint/security/advisories/new
+    about: Use GitHub private vulnerability reporting for security issues.
+

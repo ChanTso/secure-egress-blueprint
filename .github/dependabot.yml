@@ -1,0 +1,38 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+      time: "06:00"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 1
+    groups:
+      monthly-actions:
+        patterns: ["*"]
+    labels: ["dependencies", "github-actions"]
+
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: monthly
+      time: "06:15"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 1
+    groups:
+      monthly-python:
+        patterns: ["*"]
+    labels: ["dependencies", "python"]
+
+  - package-ecosystem: terraform
+    directory: /infra/tofu
+    schedule:
+      interval: monthly
+      time: "06:30"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 1
+    groups:
+      monthly-opentofu:
+        patterns: ["*"]
+    labels: ["dependencies", "opentofu"]
+

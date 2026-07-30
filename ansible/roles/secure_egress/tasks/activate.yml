@@ -1,0 +1,85 @@
+---
+- name: Decide whether activation changes the current release
+  ansible.builtin.set_fact:
+    secure_egress_activation_required: >-
+      {{ secure_egress_previous_release != secure_egress_release_path }}
+  no_log: true
+
+- name: Remove a stale next-release pointer
+  ansible.builtin.file:
+    path: "{{ secure_egress_root }}/.current-{{ secure_egress_release_digest }}"
+    state: absent
+  when: secure_egress_activation_required | bool
+  no_log: true
+
+- name: Build the next-release pointer
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/ln
+      - --symbolic
+      - "{{ secure_egress_release_path }}"
+      - "{{ secure_egress_root }}/.current-{{ secure_egress_release_digest }}"
+  when: secure_egress_activation_required | bool
+  changed_when: true
+  no_log: true
+
+- name: Mark activation as started
+  ansible.builtin.set_fact:
+    secure_egress_activation_started: true
+  when: secure_egress_activation_required | bool
+
+- name: Atomically switch the current release
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/mv
+      - --force
+      - --no-target-directory
+      - "{{ secure_egress_root }}/.current-{{ secure_egress_release_digest }}"
+      - "{{ secure_egress_current_path }}"
+  when: secure_egress_activation_required | bool
+  changed_when: true
+  no_log: true
+
+- name: Link managed systemd units through the current release
+  ansible.builtin.file:
+    src: "{{ secure_egress_current_path }}/systemd/{{ item }}"
+    dest: "{{ secure_egress_systemd_root }}/{{ item }}"
+    state: link
+    owner: root
+    group: root
+    force: true
+  loop:
+    - secure-egress-caddy.service
+    - secure-egress-xray.service
+    - secure-egress-traffic-guard.service
+    - secure-egress-traffic-guard.timer
+  when: secure_egress_activation_required | bool
+
+- name: Reload systemd and restart Xray
+  ansible.builtin.systemd_service:
+    name: secure-egress-xray.service
+    enabled: true
+    daemon_reload: true
+    state: restarted
+  when: secure_egress_activation_required | bool
+
+- name: Restart Caddy
+  ansible.builtin.systemd_service:
+    name: secure-egress-caddy.service
+    enabled: true
+    state: restarted
+  when: secure_egress_activation_required | bool
+
+- name: Enable the decision-only traffic guard schedule
+  ansible.builtin.systemd_service:
+    name: secure-egress-traffic-guard.timer
+    enabled: true
+    state: restarted
+  when: secure_egress_activation_required | bool
+
+- name: Verify Xray listeners and the Caddy health endpoint
+  ansible.builtin.include_tasks: health.yml
+
+- name: Mark the release healthy
+  ansible.builtin.set_fact:
+    secure_egress_activation_started: false

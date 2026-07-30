@@ -1,0 +1,38 @@
+name: Bug report
+description: Report a reproducible problem using synthetic data only
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include credentials, real domains, addresses, account IDs, logs,
+        client identifiers, or production configuration.
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Observed behavior
+      description: Describe the issue with a synthetic fixture.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Local validation output
+      description: Include only redacted output from safe local checks.
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety confirmation
+      options:
+        - label: This report contains synthetic data only.
+          required: true
+

@@ -1,0 +1,9 @@
+---
+profile: production
+strict: true
+offline: true
+exclude_paths:
+  - .cache/
+  - .terraform/
+  - dist/
+  - tests/fixtures/

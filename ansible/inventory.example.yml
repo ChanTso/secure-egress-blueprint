@@ -1,0 +1,8 @@
+---
+all:
+  children:
+    secure_egress:
+      hosts:
+        synthetic-egress-node:
+          ansible_host: 192.0.2.10
+          ansible_user: synthetic-admin

@@ -1,0 +1,13 @@
+{
+  "limit_bytes": {{ secure_egress_traffic_guard_limit_bytes }},
+  "warning_ratio": {{ secure_egress_traffic_guard_warning_ratio }},
+  "auto_stop_enabled":
+    {% if secure_egress_traffic_guard_auto_stop_enabled %}true{% else %}false{% endif %},
+  "stop_acknowledgement": {{ secure_egress_traffic_guard_stop_acknowledgement | to_json }},
+  "xray_binary": {{ secure_egress_xray_binary | to_json }},
+  "stats_endpoint": "127.0.0.1:{{ secure_egress_xray_stats_port }}",
+  "counter_prefix": {{ secure_egress_traffic_guard_counter_prefix | to_json }},
+  "state_path": {{ (secure_egress_state_root + "/traffic-guard.json") | to_json }},
+  "service_name": "secure-egress-xray.service",
+  "query_user": "xray"
+}

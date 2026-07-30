@@ -1,0 +1,38 @@
+[Unit]
+Description=Secure egress Xray tunnel
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{ secure_egress_xray_user }}
+Group={{ secure_egress_xray_group }}
+ExecStart={{ secure_egress_xray_binary }} run -config {{ secure_egress_current_path }}/xray.json
+Restart=on-failure
+RestartSec=3s
+TimeoutStopSec=10s
+NoNewPrivileges=true
+PrivateDevices=true
+PrivateTmp=true
+ProtectClock=true
+ProtectControlGroups=true
+ProtectHome=true
+ProtectHostname=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectProc=invisible
+ProtectSystem=strict
+ProcSubset=pid
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+SystemCallArchitectures=native
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
+

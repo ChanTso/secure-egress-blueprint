@@ -1,0 +1,67 @@
+[build-system]
+requires = ["hatchling==1.31.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "secure-egress-blueprint"
+version = "0.1.0"
+description = "Local validation utilities for a fail-closed AWS egress reference architecture"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "secure-egress-blueprint contributors" }]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Security",
+  "Topic :: System :: Networking",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+  "ansible-core==2.19.11",
+  "ansible-lint==26.6.0",
+  "build==1.5.0",
+  "hatchling==1.31.0",
+  "jinja2==3.1.6",
+  "pytest==9.1.1",
+  "pytest-cov==7.1.0",
+  "pyyaml==6.0.3",
+  "ruff==0.16.0",
+]
+
+[project.scripts]
+secure-egress-traffic-guard = "secure_egress.traffic_guard:main"
+secure-egress-privacy-lint = "secure_egress.privacy_lint:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/secure_egress"]
+
+[tool.pytest.ini_options]
+addopts = "--strict-config --strict-markers -ra"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["secure_egress"]
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
+skip_covered = true
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+extend-exclude = [".terraform"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "C4", "S", "UP", "RUF"]
+ignore = ["S603"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101"]

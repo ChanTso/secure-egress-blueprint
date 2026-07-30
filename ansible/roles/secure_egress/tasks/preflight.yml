@@ -1,0 +1,225 @@
+---
+- name: Require both deployment interlocks
+  ansible.builtin.assert:
+    that:
+      - secure_egress_deployment_enabled | bool
+      - >-
+        secure_egress_deployment_acknowledgement
+        == secure_egress_required_deployment_acknowledgement
+    fail_msg: >-
+      Deployment is disabled. An authorized operator must enable the boolean
+      interlock and provide the exact acknowledgement outside version control.
+  no_log: true
+
+- name: Validate public configuration constraints
+  ansible.builtin.assert:
+    that:
+      - >-
+        secure_egress_domain
+        is match(
+          '^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?'
+          ~ '(?:[.][a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$'
+        )
+      - secure_egress_tunnel_path is match('^/[a-z0-9][a-z0-9_-]{2,63}$')
+      - secure_egress_tls_port | int in range(1, 65536)
+      - secure_egress_caddy_health_port | int in range(1024, 65536)
+      - secure_egress_xray_tunnel_port | int in range(1024, 65536)
+      - secure_egress_xray_stats_port | int in range(1024, 65536)
+      - >-
+        [
+          secure_egress_tls_port | int,
+          secure_egress_caddy_health_port | int,
+          secure_egress_xray_tunnel_port | int,
+          secure_egress_xray_stats_port | int
+        ] | unique | length == 4
+      - secure_egress_traffic_guard_limit_bytes | int > 0
+      - secure_egress_traffic_guard_warning_ratio | float > 0
+      - secure_egress_traffic_guard_warning_ratio | float < 1
+    fail_msg: Public configuration failed structural validation.
+
+- name: Validate controlled filesystem and executable paths
+  ansible.builtin.assert:
+    that:
+      - secure_egress_root is string
+      - secure_egress_release_root is string
+      - secure_egress_current_path is string
+      - secure_egress_state_root is string
+      - secure_egress_systemd_root is string
+      - secure_egress_caddy_binary is string
+      - secure_egress_xray_binary is string
+      - secure_egress_traffic_guard_binary is string
+      - secure_egress_root is match('^/')
+      - secure_egress_release_root is match('^/')
+      - secure_egress_current_path is match('^/')
+      - secure_egress_state_root is match('^/')
+      - secure_egress_systemd_root is match('^/')
+      - secure_egress_caddy_binary is match('^/')
+      - secure_egress_xray_binary is match('^/')
+      - secure_egress_traffic_guard_binary is match('^/')
+      - secure_egress_root == (secure_egress_root | ansible.builtin.normpath)
+      - >-
+        secure_egress_release_root
+        == (secure_egress_release_root | ansible.builtin.normpath)
+      - >-
+        secure_egress_current_path
+        == (secure_egress_current_path | ansible.builtin.normpath)
+      - >-
+        secure_egress_state_root
+        == (secure_egress_state_root | ansible.builtin.normpath)
+      - >-
+        secure_egress_systemd_root
+        == (secure_egress_systemd_root | ansible.builtin.normpath)
+      - >-
+        secure_egress_caddy_binary
+        == (secure_egress_caddy_binary | ansible.builtin.normpath)
+      - >-
+        secure_egress_xray_binary
+        == (secure_egress_xray_binary | ansible.builtin.normpath)
+      - >-
+        secure_egress_traffic_guard_binary
+        == (secure_egress_traffic_guard_binary | ansible.builtin.normpath)
+      - secure_egress_root != '/'
+      - secure_egress_state_root != '/'
+      - secure_egress_release_root.startswith(secure_egress_root + '/')
+      - secure_egress_current_path.startswith(secure_egress_root + '/')
+      - not secure_egress_current_path.startswith(secure_egress_release_root + '/')
+      - not secure_egress_release_root.startswith(secure_egress_current_path + '/')
+      - secure_egress_current_path != secure_egress_release_root
+      - not secure_egress_state_root.startswith(secure_egress_root + '/')
+      - not secure_egress_root.startswith(secure_egress_state_root + '/')
+      - secure_egress_systemd_root == '/etc/systemd/system'
+      - not secure_egress_systemd_root.startswith(secure_egress_root + '/')
+      - not secure_egress_root.startswith(secure_egress_systemd_root + '/')
+      - not secure_egress_systemd_root.startswith(secure_egress_state_root + '/')
+      - not secure_egress_state_root.startswith(secure_egress_systemd_root + '/')
+      - >-
+        [
+          secure_egress_caddy_binary,
+          secure_egress_xray_binary,
+          secure_egress_traffic_guard_binary
+        ] | unique | length == 3
+      - not secure_egress_caddy_binary.startswith(secure_egress_root + '/')
+      - not secure_egress_xray_binary.startswith(secure_egress_root + '/')
+      - not secure_egress_traffic_guard_binary.startswith(secure_egress_root + '/')
+      - not secure_egress_caddy_binary.startswith(secure_egress_state_root + '/')
+      - not secure_egress_xray_binary.startswith(secure_egress_state_root + '/')
+      - >-
+        not secure_egress_traffic_guard_binary.startswith(
+          secure_egress_state_root + '/'
+        )
+      - not secure_egress_caddy_binary.startswith(secure_egress_systemd_root + '/')
+      - not secure_egress_xray_binary.startswith(secure_egress_systemd_root + '/')
+      - >-
+        not secure_egress_traffic_guard_binary.startswith(
+          secure_egress_systemd_root + '/'
+        )
+      - >-
+        secure_egress_caddy_binary
+        not in [
+          secure_egress_root,
+          secure_egress_state_root,
+          secure_egress_systemd_root
+        ]
+      - >-
+        secure_egress_xray_binary
+        not in [
+          secure_egress_root,
+          secure_egress_state_root,
+          secure_egress_systemd_root
+        ]
+      - >-
+        secure_egress_traffic_guard_binary
+        not in [
+          secure_egress_root,
+          secure_egress_state_root,
+          secure_egress_systemd_root
+        ]
+      - secure_egress_xray_user == 'xray'
+      - secure_egress_xray_group == 'xray'
+    fail_msg: >-
+      Filesystem roots and executable paths must be absolute, normalized,
+      non-overlapping, and confined to the documented hierarchy.
+
+- name: Validate the external client identifier
+  ansible.builtin.assert:
+    that:
+      - >-
+        secure_egress_client_id
+        is match('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$')
+    fail_msg: The client identifier must be supplied by an external 0600 vars file.
+  no_log: true
+
+- name: Require a second interlock for traffic enforcement
+  ansible.builtin.assert:
+    that:
+      - not secure_egress_traffic_guard_enforce | bool or secure_egress_traffic_guard_auto_stop_enabled | bool
+      - >-
+        not secure_egress_traffic_guard_enforce | bool
+        or secure_egress_traffic_guard_stop_acknowledgement
+        == 'ALLOW_SYNTHETIC_AUTO_STOP'
+    fail_msg: Traffic enforcement requires auto-stop and its explicit acknowledgement.
+  no_log: true
+
+- name: Confirm required service accounts exist
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ item }}"
+    fail_key: true
+  loop:
+    - "{{ secure_egress_caddy_user }}"
+    - "{{ secure_egress_xray_user }}"
+
+- name: Confirm required service groups exist
+  ansible.builtin.getent:
+    database: group
+    key: "{{ item }}"
+    fail_key: true
+  loop:
+    - "{{ secure_egress_caddy_group }}"
+    - "{{ secure_egress_xray_group }}"
+
+- name: Confirm Caddy is installed locally on the managed node
+  ansible.builtin.command:
+    argv:
+      - "{{ secure_egress_caddy_binary }}"
+      - version
+  become: true
+  become_user: "{{ secure_egress_caddy_user }}"
+  changed_when: false
+
+- name: Inspect the Xray executable before invoking it
+  ansible.builtin.stat:
+    path: "{{ secure_egress_xray_binary }}"
+    follow: false
+    get_checksum: false
+    get_mime: false
+  register: secure_egress_xray_binary_stat
+
+- name: Require a root-owned non-writable regular Xray executable
+  ansible.builtin.assert:
+    that:
+      - secure_egress_xray_binary_stat.stat.exists | default(false)
+      - secure_egress_xray_binary_stat.stat.isreg | default(false)
+      - secure_egress_xray_binary_stat.stat.uid | default(-1) == 0
+      - >-
+        secure_egress_xray_binary_stat.stat.mode | default('')
+        is match('^0[57][0145][15]$')
+    fail_msg: >-
+      The Xray executable must be a root-owned regular file, executable by the
+      xray query user, and not group/world writable.
+
+- name: Confirm Xray is installed locally on the managed node
+  ansible.builtin.command:
+    argv:
+      - "{{ secure_egress_xray_binary }}"
+      - version
+  become: true
+  become_user: "{{ secure_egress_xray_user }}"
+  changed_when: false
+
+- name: Confirm the traffic guard is installed locally on the managed node
+  ansible.builtin.command:
+    argv:
+      - "{{ secure_egress_traffic_guard_binary }}"
+      - --help
+  changed_when: false

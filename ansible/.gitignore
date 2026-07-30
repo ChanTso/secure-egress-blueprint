@@ -1,0 +1,8 @@
+# Runtime inventory and secrets must remain outside version control.
+inventory.local.yml
+inventory.local.yaml
+secrets/*.yml
+secrets/*.yaml
+!secrets/*.example.yml
+!secrets/.gitignore
+

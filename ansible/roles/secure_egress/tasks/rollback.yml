@@ -1,0 +1,56 @@
+---
+- name: Recover from a post-switch activation failure
+  when: secure_egress_activation_started | default(false) | bool
+  block:
+    - name: Restore the previous controlled release
+      when: secure_egress_previous_release | default('') | length > 0
+      block:
+        - name: Remove a stale rollback pointer
+          ansible.builtin.file:
+            path: "{{ secure_egress_root }}/.rollback"
+            state: absent
+
+        - name: Build the rollback pointer
+          ansible.builtin.command:
+            argv:
+              - /usr/bin/ln
+              - --symbolic
+              - "{{ secure_egress_previous_release }}"
+              - "{{ secure_egress_root }}/.rollback"
+          changed_when: true
+          no_log: true
+
+        - name: Atomically restore the previous release
+          ansible.builtin.command:
+            argv:
+              - /usr/bin/mv
+              - --force
+              - --no-target-directory
+              - "{{ secure_egress_root }}/.rollback"
+              - "{{ secure_egress_current_path }}"
+          changed_when: true
+          no_log: true
+
+        - name: Reload systemd after rollback
+          ansible.builtin.systemd_service:
+            daemon_reload: true
+
+        - name: Restart services on the restored release
+          ansible.builtin.systemd_service:
+            name: "{{ item }}"
+            state: restarted
+          loop:
+            - secure-egress-xray.service
+            - secure-egress-caddy.service
+            - secure-egress-traffic-guard.timer
+
+        - name: Verify the restored release before accepting rollback
+          ansible.builtin.include_tasks: health.yml
+
+    - name: Stop and disable services when no rollback target exists
+      ansible.builtin.include_tasks: fail_closed.yml
+      when: secure_egress_previous_release | default('') | length == 0
+
+  rescue:
+    - name: Fail closed when rollback itself is unsuccessful
+      ansible.builtin.include_tasks: fail_closed.yml

@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+      AWS_EC2_METADATA_DISABLED: "true"
+      TOFU_IN_AUTOMATION: "1"
+
+    steps:
+      - name: Check out the clean public history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install operating-system tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes shellcheck unzip
+
+      - name: Install pinned OpenTofu
+        env:
+          TOFU_VERSION: "1.12.5"
+          TOFU_ARCHIVE_SHA256: "dade9650e6b74fc7a8b986bd8717497d32f9e09cf82e479afef4977fa3085536"
+        run: |
+          archive="tofu_${TOFU_VERSION}_linux_amd64.zip"
+          curl --fail --silent --show-error --location \
+            "https://github.com/opentofu/opentofu/releases/download/v${TOFU_VERSION}/${archive}" \
+            --output "/tmp/${archive}"
+          printf '%s  %s\n' "${TOFU_ARCHIVE_SHA256}" "/tmp/${archive}" | sha256sum --check
+          unzip -q "/tmp/${archive}" -d /tmp/opentofu
+          sudo install -m 0755 /tmp/opentofu/tofu /usr/local/bin/tofu
+          tofu version
+
+      - name: Install pinned Gitleaks
+        env:
+          GITLEAKS_VERSION: "8.30.1"
+          GITLEAKS_ARCHIVE_SHA256: "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+        run: |
+          archive="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl --fail --silent --show-error --location \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${archive}" \
+            --output "/tmp/${archive}"
+          printf '%s  %s\n' "${GITLEAKS_ARCHIVE_SHA256}" "/tmp/${archive}" | sha256sum --check
+          mkdir -p /tmp/gitleaks
+          tar -xzf "/tmp/${archive}" -C /tmp/gitleaks gitleaks
+          sudo install -m 0755 /tmp/gitleaks/gitleaks /usr/local/bin/gitleaks
+          gitleaks version
+
+      - name: Install the pinned Python toolchain
+        run: python -m pip install --editable '.[dev]'
+
+      - name: Run every local quality gate
+        run: make verify
+

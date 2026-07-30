@@ -1,0 +1,9 @@
+---
+- name: Deploy the secure egress reference transactionally
+  hosts: secure_egress
+  gather_facts: false
+  become: true
+  any_errors_fatal: true
+
+  roles:
+    - role: secure_egress

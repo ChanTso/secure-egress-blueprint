@@ -1,0 +1,172 @@
+---
+- name: Allocate staging on the release filesystem
+  ansible.builtin.tempfile:
+    path: "{{ secure_egress_release_root }}"
+    prefix: .stage-
+    state: directory
+  register: secure_egress_stage
+  changed_when: false
+  no_log: true
+
+- name: Record the staging path
+  ansible.builtin.set_fact:
+    secure_egress_stage_path: "{{ secure_egress_stage.path }}"
+  no_log: true
+
+- name: Make the staging root traversable by validator service accounts
+  ansible.builtin.file:
+    path: "{{ secure_egress_stage_path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  changed_when: false
+  no_log: true
+
+- name: Create the staged systemd directory
+  ansible.builtin.file:
+    path: "{{ secure_egress_stage_path }}/systemd"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  changed_when: false
+  no_log: true
+
+- name: Render the secret-bearing Xray configuration
+  ansible.builtin.template:
+    src: xray.json.j2
+    dest: "{{ secure_egress_stage_path }}/xray.json"
+    owner: root
+    group: "{{ secure_egress_xray_group }}"
+    mode: "0640"
+  changed_when: false
+  no_log: true
+
+- name: Render the Caddy configuration
+  ansible.builtin.template:
+    src: Caddyfile.j2
+    dest: "{{ secure_egress_stage_path }}/Caddyfile"
+    owner: root
+    group: "{{ secure_egress_caddy_group }}"
+    mode: "0640"
+  changed_when: false
+  no_log: true
+
+- name: Render the root-only traffic guard configuration
+  ansible.builtin.template:
+    src: traffic-guard.json.j2
+    dest: "{{ secure_egress_stage_path }}/traffic-guard.json"
+    owner: root
+    group: root
+    mode: "0600"
+  changed_when: false
+  no_log: true
+
+- name: Render hardened systemd units
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "{{ secure_egress_stage_path }}/systemd/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  changed_when: false
+  loop:
+    - secure-egress-caddy.service
+    - secure-egress-xray.service
+    - secure-egress-traffic-guard.service
+    - secure-egress-traffic-guard.timer
+  no_log: true
+
+- name: Validate the staged Caddy configuration
+  ansible.builtin.command:
+    argv:
+      - "{{ secure_egress_caddy_binary }}"
+      - validate
+      - --config
+      - "{{ secure_egress_stage_path }}/Caddyfile"
+      - --adapter
+      - caddyfile
+  become: true
+  become_user: "{{ secure_egress_caddy_user }}"
+  changed_when: false
+  no_log: true
+
+- name: Validate the staged Xray configuration
+  ansible.builtin.command:
+    argv:
+      - "{{ secure_egress_xray_binary }}"
+      - run
+      - -test
+      - -config
+      - "{{ secure_egress_stage_path }}/xray.json"
+  become: true
+  become_user: "{{ secure_egress_xray_user }}"
+  changed_when: false
+  no_log: true
+
+- name: Collect staged file checksums in a fixed path order
+  ansible.builtin.stat:
+    path: "{{ secure_egress_stage_path }}/{{ item }}"
+    checksum_algorithm: sha256
+  loop:
+    - Caddyfile
+    - xray.json
+    - traffic-guard.json
+    - systemd/secure-egress-caddy.service
+    - systemd/secure-egress-xray.service
+    - systemd/secure-egress-traffic-guard.service
+    - systemd/secure-egress-traffic-guard.timer
+  register: secure_egress_staged_checksums
+  no_log: true
+
+- name: Derive the stable content digest and immutable release path
+  ansible.builtin.set_fact:
+    secure_egress_release_digest: >-
+      {{
+        secure_egress_staged_checksums.results
+        | map(attribute='stat.checksum')
+        | join(':')
+        | hash('sha256')
+      }}
+    secure_egress_release_path: >-
+      {{
+        secure_egress_release_root
+        ~ '/'
+        ~ (
+          secure_egress_staged_checksums.results
+          | map(attribute='stat.checksum')
+          | join(':')
+          | hash('sha256')
+        )
+      }}
+  no_log: true
+
+- name: Inspect an existing identical release
+  ansible.builtin.stat:
+    path: "{{ secure_egress_release_path }}"
+  register: secure_egress_release_stat
+  no_log: true
+
+- name: Atomically commit a new immutable release directory
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/mv
+      - --no-target-directory
+      - "{{ secure_egress_stage_path }}"
+      - "{{ secure_egress_release_path }}"
+  when: not secure_egress_release_stat.stat.exists
+  changed_when: true
+  no_log: true
+
+- name: Discard staging when an identical release already exists
+  ansible.builtin.file:
+    path: "{{ secure_egress_stage_path }}"
+    state: absent
+  when: secure_egress_release_stat.stat.exists
+  changed_when: false
+  no_log: true
+
+- name: Mark staging as committed
+  ansible.builtin.set_fact:
+    secure_egress_stage_path: ""

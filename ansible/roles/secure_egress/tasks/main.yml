@@ -1,0 +1,34 @@
+---
+- name: Run fail-closed preflight checks
+  ansible.builtin.import_tasks: preflight.yml
+
+- name: Prepare release directories and capture rollback target
+  ansible.builtin.import_tasks: prepare.yml
+
+- name: Stage and activate one immutable release
+  block:
+    - name: Render and validate a content-addressed release
+      ansible.builtin.include_tasks: stage.yml
+
+    - name: Atomically activate and health-check the release
+      ansible.builtin.include_tasks: activate.yml
+
+  rescue:
+    - name: Restore the previous release or stop the services
+      ansible.builtin.include_tasks: rollback.yml
+
+    - name: Report transactional deployment failure
+      ansible.builtin.fail:
+        msg: >-
+          Release activation failed. The previous controlled release was restored
+          when available; otherwise the egress services were stopped.
+
+  always:
+    - name: Remove an uncommitted staging directory
+      ansible.builtin.file:
+        path: "{{ secure_egress_stage_path }}"
+        state: absent
+      when:
+        - secure_egress_stage_path is defined
+        - secure_egress_stage_path | length > 0
+      no_log: true

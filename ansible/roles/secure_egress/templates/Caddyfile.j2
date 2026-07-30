@@ -1,0 +1,30 @@
+{
+	admin off
+	auto_https disable_redirects
+}
+
+{{ secure_egress_domain }}:{{ secure_egress_tls_port }} {
+	tls internal
+
+	@tunnel {
+		path {{ secure_egress_tunnel_path }}
+	}
+	handle @tunnel {
+		reverse_proxy 127.0.0.1:{{ secure_egress_xray_tunnel_port }}
+	}
+	handle {
+		respond 404
+	}
+}
+
+http://127.0.0.1:{{ secure_egress_caddy_health_port }} {
+	@health {
+		path /healthz
+	}
+	handle @health {
+		respond "ok" 200
+	}
+	handle {
+		respond 404
+	}
+}

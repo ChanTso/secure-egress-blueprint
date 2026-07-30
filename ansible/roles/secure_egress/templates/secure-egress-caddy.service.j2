@@ -1,0 +1,51 @@
+[Unit]
+Description=Secure egress Caddy ingress
+After=network-online.target secure-egress-xray.service
+Wants=network-online.target
+Requires=secure-egress-xray.service
+
+[Service]
+Type=notify
+User={{ secure_egress_caddy_user }}
+Group={{ secure_egress_caddy_group }}
+ExecStart={{ secure_egress_caddy_binary }} run \
+  --config {{ secure_egress_current_path }}/Caddyfile \
+  --adapter caddyfile
+ExecReload={{ secure_egress_caddy_binary }} reload \
+  --config {{ secure_egress_current_path }}/Caddyfile \
+  --adapter caddyfile \
+  --force
+Restart=on-failure
+RestartSec=3s
+TimeoutStopSec=10s
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+NoNewPrivileges=true
+PrivateDevices=true
+PrivateTmp=true
+ProtectClock=true
+ProtectControlGroups=true
+ProtectHome=true
+ProtectHostname=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectProc=invisible
+ProtectSystem=strict
+ProcSubset=pid
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+SystemCallArchitectures=native
+UMask=0077
+StateDirectory=secure-egress-caddy
+RuntimeDirectory=secure-egress-caddy
+Environment=XDG_DATA_HOME=/var/lib/secure-egress-caddy
+Environment=XDG_CONFIG_HOME=/var/lib/secure-egress-caddy
+
+[Install]
+WantedBy=multi-user.target
+

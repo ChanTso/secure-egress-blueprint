@@ -1,0 +1,12 @@
+{
+  "limit_bytes": 1073741824,
+  "warning_ratio": 0.8,
+  "auto_stop_enabled": false,
+  "stop_acknowledgement": "",
+  "xray_binary": "/usr/local/bin/xray",
+  "stats_endpoint": "127.0.0.1:11085",
+  "counter_prefix": "inbound>>>tunnel>>>traffic>>>",
+  "state_path": "/var/lib/secure-egress/traffic-guard.json",
+  "service_name": "secure-egress-xray.service",
+  "query_user": "xray"
+}

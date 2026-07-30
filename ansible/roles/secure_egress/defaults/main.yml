@@ -1,0 +1,36 @@
+---
+secure_egress_deployment_enabled: false
+secure_egress_deployment_acknowledgement: ""
+secure_egress_required_deployment_acknowledgement: DEPLOY_AUTHORIZED_REFERENCE_EGRESS
+
+secure_egress_domain: egress.example.com
+secure_egress_tunnel_path: /synthetic-tunnel
+secure_egress_client_id: ""
+
+secure_egress_root: /opt/secure-egress
+secure_egress_release_root: /opt/secure-egress/releases
+secure_egress_current_path: /opt/secure-egress/current
+secure_egress_systemd_root: /etc/systemd/system
+secure_egress_state_root: /var/lib/secure-egress
+
+secure_egress_caddy_binary: /usr/bin/caddy
+secure_egress_xray_binary: /usr/local/bin/xray
+secure_egress_traffic_guard_binary: /usr/local/bin/secure-egress-traffic-guard
+
+secure_egress_caddy_user: caddy
+secure_egress_caddy_group: caddy
+secure_egress_xray_user: xray
+secure_egress_xray_group: xray
+
+secure_egress_tls_port: 443
+secure_egress_caddy_health_port: 19080
+secure_egress_xray_tunnel_port: 11080
+secure_egress_xray_stats_port: 11085
+
+secure_egress_traffic_guard_limit_bytes: 1073741824
+secure_egress_traffic_guard_warning_ratio: 0.8
+secure_egress_traffic_guard_auto_stop_enabled: false
+secure_egress_traffic_guard_enforce: false
+secure_egress_traffic_guard_stop_acknowledgement: ""
+secure_egress_traffic_guard_counter_prefix: inbound>>>tunnel>>>traffic>>>
+secure_egress_traffic_guard_schedule: "*:0/15"

@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+.venv/
+build/
+dist/
+*.egg-info/
+
+# OpenTofu and Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+crash.log
+crash.*.log
+.terraformrc
+terraform.rc
+
+# Ansible
+*.retry
+*.vault.yml
+!vault.example.yml
+ansible/inventory.yml
+
+# Secrets and generated client artifacts
+.env
+.env.*
+!.env.example
+local/
+generated/
+/secrets/
+artifacts/
+*.pem
+*.key
+*.p12
+*.pfx
+*.mobileconfig
+*.qr
+*-client.json
+!synthetic-client.json
+
+# Editors and operating systems
+.DS_Store
+.idea/
+.vscode/
+*.swp
+

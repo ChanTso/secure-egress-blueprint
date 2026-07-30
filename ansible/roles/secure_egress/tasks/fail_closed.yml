@@ -1,0 +1,78 @@
+---
+- name: Request stop and disable for every managed unit
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: false
+    state: stopped
+  loop:
+    - secure-egress-caddy.service
+    - secure-egress-xray.service
+    - secure-egress-traffic-guard.service
+    - secure-egress-traffic-guard.timer
+  register: secure_egress_fail_closed_requests
+  failed_when: false
+
+- name: Read the active state of every managed unit
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/systemctl
+      - is-active
+      - "{{ item }}"
+  loop:
+    - secure-egress-caddy.service
+    - secure-egress-xray.service
+    - secure-egress-traffic-guard.service
+    - secure-egress-traffic-guard.timer
+  register: secure_egress_fail_closed_active
+  changed_when: false
+  failed_when: false
+
+- name: Require every managed unit to be inactive
+  ansible.builtin.assert:
+    that:
+      - item.stdout | trim in ['inactive', 'failed', 'unknown']
+    fail_msg: >-
+      Fail-closed verification could not prove that {{ item.item }} is inactive.
+  loop: "{{ secure_egress_fail_closed_active.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+- name: Read the enablement state of every managed unit
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/systemctl
+      - is-enabled
+      - "{{ item }}"
+  loop:
+    - secure-egress-caddy.service
+    - secure-egress-xray.service
+    - secure-egress-traffic-guard.service
+    - secure-egress-traffic-guard.timer
+  register: secure_egress_fail_closed_enabled
+  changed_when: false
+  failed_when: false
+
+- name: Require every managed unit to be disabled or not enableable
+  ansible.builtin.assert:
+    that:
+      - >-
+        item.stdout | trim
+        in [
+          'disabled',
+          'masked',
+          'masked-runtime',
+          'static',
+          'linked',
+          'linked-runtime',
+          'not-found'
+        ]
+    fail_msg: >-
+      Fail-closed verification could not prove that {{ item.item }} is disabled.
+  loop: "{{ secure_egress_fail_closed_enabled.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+- name: Remove the failed or indeterminate current pointer
+  ansible.builtin.file:
+    path: "{{ secure_egress_current_path }}"
+    state: absent

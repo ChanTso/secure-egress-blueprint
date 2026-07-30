@@ -1,0 +1,62 @@
+---
+- name: Create the controlled deployment directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "{{ item.mode }}"
+  loop:
+    - path: "{{ secure_egress_root }}"
+      mode: "0755"
+    - path: "{{ secure_egress_release_root }}"
+      mode: "0755"
+    - path: "{{ secure_egress_state_root }}"
+      mode: "0700"
+
+- name: Inspect the current release pointer
+  ansible.builtin.stat:
+    path: "{{ secure_egress_current_path }}"
+    follow: false
+  register: secure_egress_current_stat
+
+- name: Reject an unmanaged current path
+  ansible.builtin.assert:
+    that:
+      - >-
+        not secure_egress_current_stat.stat.exists
+        or secure_egress_current_stat.stat.islnk
+    fail_msg: The controlled current path exists but is not a symbolic link.
+
+- name: Resolve the previous release pointer
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/readlink
+      - --canonicalize
+      - "{{ secure_egress_current_path }}"
+  register: secure_egress_previous_readlink
+  changed_when: false
+  when: secure_egress_current_stat.stat.islnk | default(false)
+
+- name: Record the validated rollback target
+  ansible.builtin.set_fact:
+    secure_egress_previous_release: >-
+      {{
+        secure_egress_previous_readlink.stdout
+        if secure_egress_current_stat.stat.islnk | default(false)
+        else ''
+      }}
+
+- name: Require the previous target to be an immutable managed release
+  ansible.builtin.assert:
+    that:
+      - secure_egress_previous_readlink.rc == 0
+      - secure_egress_previous_release.startswith(secure_egress_release_root + '/')
+      - secure_egress_previous_release != secure_egress_release_root
+    fail_msg: The current symlink does not resolve below the controlled release root.
+  when: secure_egress_current_stat.stat.islnk | default(false)
+
+- name: Initialize activation state
+  ansible.builtin.set_fact:
+    secure_egress_activation_started: false
+    secure_egress_stage_path: ""

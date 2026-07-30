@@ -1,0 +1,33 @@
+[Unit]
+Description=Secure egress traffic budget decision
+After=secure-egress-xray.service
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+ExecStart={{ secure_egress_traffic_guard_binary }} \
+  --config {{ secure_egress_current_path }}/traffic-guard.json{% if secure_egress_traffic_guard_enforce %} \
+  --enforce{% endif %}
+NoNewPrivileges=true
+PrivateDevices=true
+PrivateTmp=true
+ProtectClock=true
+ProtectControlGroups=true
+ProtectHome=true
+ProtectHostname=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectProc=invisible
+ProtectSystem=strict
+ProcSubset=pid
+ReadWritePaths={{ secure_egress_state_root }}
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+SystemCallArchitectures=native
+UMask=0077

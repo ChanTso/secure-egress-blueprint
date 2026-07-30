@@ -1,0 +1,19 @@
+# This file is intentionally non-deploying and uses documentation-only values.
+deployment_enabled = false
+
+aws_region       = "us-east-2"
+availability_zone = "us-east-2a"
+name_prefix      = "synthetic-egress"
+
+tls_source_cidrs = ["198.51.100.0/24"]
+ssh_enabled      = false
+ssh_source_cidrs = []
+
+enable_network_alarm             = false
+network_alarm_bytes              = 5368709120
+network_alarm_evaluation_periods = 1
+network_alarm_contact_protocols  = []
+
+# If an authorized deployment is independently reviewed, supply sensitive
+# acknowledgements and real identifiers outside version control.
+

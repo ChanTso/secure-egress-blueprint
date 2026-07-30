@@ -1,0 +1,12 @@
+[Unit]
+Description=Schedule secure egress traffic budget decisions
+
+[Timer]
+OnCalendar={{ secure_egress_traffic_guard_schedule }}
+Persistent=true
+RandomizedDelaySec=60s
+Unit=secure-egress-traffic-guard.service
+
+[Install]
+WantedBy=timers.target
+
