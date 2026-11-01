@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling==1.31.0"]
+requires = ["hatchling==1.33.0"]
 build-backend = "hatchling.build"
 
 [project]
@@ -23,15 +23,15 @@ dependencies = []
 
 [project.optional-dependencies]
 dev = [
-  "ansible-core==2.19.11",
-  "ansible-lint==26.6.0",
-  "build==1.5.0",
-  "hatchling==1.31.0",
+  "ansible-core==2.19.14",
+  "ansible-lint==26.10.1",
+  "build==1.6.1",
+  "hatchling==1.33.0",
   "jinja2==3.1.6",
-  "pytest==9.1.1",
+  "pytest==9.2.0",
   "pytest-cov==7.1.0",
   "pyyaml==6.0.3",
-  "ruff==0.16.0",
+  "ruff==0.17.3",
 ]
 
 [project.scripts]
